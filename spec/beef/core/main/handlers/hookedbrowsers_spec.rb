@@ -4,37 +4,36 @@
 # See the file 'doc/COPYING' for copying permission
 #
 
+require 'spec_helper'
+
 RSpec.describe BeEF::Core::Handlers::HookedBrowsers do
-  # Test the confirm_browser_user_agent logic directly
-  describe 'confirm_browser_user_agent logic' do
-    it 'matches legacy browser user agents' do
+  # .new returns Sinatra::Wrapper; use allocate to get the real class instance for unit testing
+  let(:handler) { described_class.allocate }
+
+  describe '#confirm_browser_user_agent' do
+    it 'returns true when user_agent suffix matches a legacy UA string' do
       allow(BeEF::Core::Models::LegacyBrowserUserAgents).to receive(:user_agents).and_return(['IE 8.0'])
-      
-      # Test the logic: browser_type = user_agent.split(' ').last
-      user_agent = 'Mozilla/5.0 IE 8.0'
-      browser_type = user_agent.split(' ').last
-      
-      # Test the matching logic
-      matched = false
-      BeEF::Core::Models::LegacyBrowserUserAgents.user_agents.each do |ua_string|
-        matched = true if ua_string.include?(browser_type)
-      end
-      
-      expect(matched).to be true
+
+      # browser_type = user_agent.split(' ').last => '8.0'; 'IE 8.0'.include?('8.0') => true
+      expect(handler.confirm_browser_user_agent('Mozilla/5.0 IE 8.0')).to be true
     end
 
-    it 'does not match non-legacy browser user agents' do
+    it 'returns true when first legacy UA matches' do
+      allow(BeEF::Core::Models::LegacyBrowserUserAgents).to receive(:user_agents).and_return(['IE 8.0', 'Firefox/3.6'])
+
+      expect(handler.confirm_browser_user_agent('Mozilla/5.0 IE 8.0')).to be true
+    end
+
+    it 'returns false when no legacy UA includes the browser type' do
       allow(BeEF::Core::Models::LegacyBrowserUserAgents).to receive(:user_agents).and_return([])
-      
-      user_agent = 'Chrome/91.0'
-      browser_type = user_agent.split(' ').last
-      
-      matched = false
-      BeEF::Core::Models::LegacyBrowserUserAgents.user_agents.each do |ua_string|
-        matched = true if ua_string.include?(browser_type)
-      end
-      
-      expect(matched).to be false
+
+      expect(handler.confirm_browser_user_agent('Mozilla/5.0 Chrome/91.0')).to be false
+    end
+
+    it 'returns false when legacy list has entries but none match' do
+      allow(BeEF::Core::Models::LegacyBrowserUserAgents).to receive(:user_agents).and_return(['IE 8.0'])
+
+      expect(handler.confirm_browser_user_agent('Chrome/91.0')).to be false
     end
   end
 end
