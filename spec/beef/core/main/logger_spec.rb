@@ -58,5 +58,18 @@ RSpec.describe BeEF::Core::Logger do
         TypeError, "'event' is NilClass; expected String"
       )
     end
+
+    it 'calls notifications when extension is enabled' do
+      notifications_double = double('Notifications')
+      logger.instance_variable_set(:@notifications, notifications_double)
+      allow(notifications_double).to receive(:new)
+      logger.register('Zombie', 'Browser hooked', 7)
+      expect(notifications_double).to have_received(:new).with(
+        'Zombie',
+        'Browser hooked',
+        kind_of(Time),
+        7
+      )
+    end
   end
 end
